@@ -1,4 +1,3 @@
--- todo: show if someone is offline 
 -- todo: change order: /epbonus warrior guild
 
 SLASH_EPBONUS1 = "/epbonus"
@@ -33,6 +32,7 @@ local abbrev = {
 
 local function ep_for_target(target, config)
   local target_name = UnitName(target)
+
   if not target_name then
     return nil
   end
@@ -41,6 +41,11 @@ local function ep_for_target(target, config)
 
   if config.class ~= "ALL" and config.class ~= englishClass then
     return nil
+  end
+
+  local isOnline = UnitIsConnected(target)
+  if not isOnline then
+    return config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
   end
 
   local buffs = {};
@@ -121,6 +126,7 @@ SlashCmdList["EPBONUS"] = function(args)
     show_buff_abbrev = true,
     color_name = "|cFFFFFF00",
     color_buffs = "|cFF888888",
+    color_offline = "|cFFFF0000",
     color_reset = "|r",
     class = "ALL"
   }
@@ -134,6 +140,7 @@ SlashCmdList["EPBONUS"] = function(args)
     config.announce = command
     config.color_name = ""
     config.color_buffs = ""
+    config.color_offline = ""
     config.color_reset = ""
     command = arg1
     arg1 = nil
