@@ -1,5 +1,3 @@
--- todo: change order: /epbonus warrior guild
-
 SLASH_EPBONUS1 = "/epbonus"
 
 local bonus = {
@@ -104,15 +102,16 @@ end
 
 function show_help()
   message = [[
-  |cFFFF0000EP Bonus usage:|r
-  |cFF00FF00/epbonus [<command>] [<class> || target]|r
-  Examples:
-    |cFF00FF00/epbonus help|r - show this message
-    |cFF00FF00/epbonus|r - show bonus of all players in default chat frame 
-    |cFF00FF00/epbonus raid warrior|r - announce bonus of warriors in raid chat
-    |cFF00FF00/epbonus warrior|r - show bonus of warriors  in default chat frame
-    |cFF00FF00/epbonus guild|r - announce bonus of all players in guild chat
-    |cFF00FF00/epbonus guild target|r - announce bonus of target player in guild chat]]
+EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00[<unit>] [<chat>]|r
+|cFFFFFF00<unit>|r (default: "|cFF00FF00all|r"):
+  |cFF00FF00/epbonus all|r - show information for all players (|cFFFFFF00default|r)
+  |cFF00FF00/epbonus target|r - show information for selected target
+  |cFF00FF00/epbonus |cFFFFFF00<class>|r - show information for specified class
+|cFFFFFF00<chat>|r (default: "|cFF00FF00show|r"):
+  |cFF00FF00/epbonus show|r - show in default chat frame (|cFFFFFF00default|r)
+  |cFF00FF00/epbonus raid|r - announce in raid channel
+  |cFF00FF00/epbonus guild|r - announce in guild channel
+Example: |cFF00FF00/epbonus mage raid|r - announce bonus of all mages in raid channel]]
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
@@ -128,15 +127,41 @@ SlashCmdList["EPBONUS"] = function(args)
     color_buffs = "|cFF888888",
     color_offline = "|cFFFF0000",
     color_reset = "|r",
-    class = "ALL"
+    class = "ALL",
+    target = false
   }
 
-  if command == "help" then
+  if not command or command == "" or command == "all" or command == "show" then
+    config.class = "ALL"
+  elseif command == "help" then
+    show_help()
+    return
+  elseif command == "raid" or command == "guild" then
+    config.announce = command
+    config.color_name = ""
+    config.color_buffs = ""
+    config.color_offline = ""
+    config.color_reset = ""
+  elseif command == "target" then
+    config.show_buff_bonus = true
+    config.show_buff_abbrev = true
+    config.target = true
+  elseif command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
+    or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
+    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter"
+    then
+    config.class = command:upper()
+  else
+    log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
     return
   end
 
-  if command == "raid" or command == "guild" then
+  command = arg1
+  arg1 = nil
+
+  if not command or command == "" or command == "all" or command == "show" then
+  elseif not config.announce and command == "raid" or command == "guild" then
     config.announce = command
     config.color_name = ""
     config.color_buffs = ""
@@ -144,27 +169,30 @@ SlashCmdList["EPBONUS"] = function(args)
     config.color_reset = ""
     command = arg1
     arg1 = nil
-  end
-
-  if arg1 then
-    log("invalid command1: "..command.." "..arg1)
-    return
-  end
-
-  if command == nil or command == "" then
-  elseif command == "target" then
+  elseif not config.target and command == "target" then
     config.show_buff_bonus = true
     config.show_buff_abbrev = true
-    local message = ep_for_target("target", config)
-    show_message(message, config)
-    return
-  elseif command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
+    command = arg1
+    arg1 = nil
+    config.target = true
+  elseif not config.class and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
     or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
-    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter"
+    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
     then
     config.class = command:upper()
   else
-    log("invalid command2: "..command)
+    log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
+    show_help()
+    return
+  end
+
+  if config.target then
+    local message = ep_for_target("target", config)
+    if message then
+      show_message(message, config)
+    else
+      log("|cFFFF0000Need to select target first|r")
+    end
     return
   end
 
