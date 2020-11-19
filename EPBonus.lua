@@ -55,6 +55,12 @@ local function ep_for_target(unit, config)
   end
 
   local isOnline = UnitIsConnected(unit)
+
+
+  if config.unit == "ontime" then
+    return target_name, 10, "ONTIME", isOnline and "Online" or "Offline"
+  end
+
   if not isOnline then
     -- local message = config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
     local reason = "OFFLINE"
@@ -121,6 +127,8 @@ local function action_for(name, ep, reason, message, config)
       local m = ""
       if reason == "OFFLINE" then
         m = "OFFLINE"
+      elseif reason == "ONTIME" then
+        m = "OnTime: "..message
       elseif ep > 0 then
         m = "Buffs: "..message
       else
@@ -146,6 +154,7 @@ EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00<action> <unit>|r
     |cFF00FF00all|r - show information for all players (|cFFFFFF00default|r)
     |cFF00FF00target|r - show information for selected target
     |cFF00FF00|cFFFFFF00<class>|r - show information for specified class
+    |cFF00FF00ontime|r - show information of all raid roster with ontime bonus
 Example: |cFF00FF00/epbonus raid mage|r - announce bonus of all mages in raid channel]]
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
@@ -169,9 +178,9 @@ local function epbonus(args)
   if not command or command == "" or command == "help" then
     show_help()
     return
-  elseif not config.action and command == "show" then
+  elseif command == "show" then
     config.action = command
-  elseif not config.action and (command == "raid" or command == "guild" or command == "add") then
+  elseif command == "raid" or command == "guild" or command == "add" then
     config.action = command
     config.color_name = ""
     config.color_buffs = ""
@@ -190,7 +199,7 @@ local function epbonus(args)
     log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
     return
-  elseif command == "all" then
+  elseif command == "all" or command == "ontime" then
     config.unit = command
   elseif command == "target" then
     config.unit = command
@@ -228,7 +237,7 @@ local function epbonus(args)
   local raid_or_party = IsInRaid() and "raid" or "party"
 
   local number_of_members = GetNumGroupMembers()
-  show_message(config.color_buffs.."== Class: "..(config.class or config.unit).." ==", config)
+  show_message(config.color_buffs.."== "..(config.class or config.unit).." ==", config)
   if IsInRaid() then
     for p=1,number_of_members do
       local name, ep, reason, message = ep_for_target("raid"..p, config)
