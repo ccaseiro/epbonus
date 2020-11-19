@@ -2,7 +2,7 @@
 ## Title: EPBonus
 ## Notes: Manage EP Bonus according to Player's Buffs / OnTime
 ## Author: Claudio Caseiro
-## Version: 1.1.0
+## Version: 1.1.1
 ## X-Website: https://github.com/ccaseiro/epbonus.git
 
 EPBonus.lua
