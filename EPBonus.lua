@@ -136,17 +136,17 @@ end
 
 local function show_help()
   message = [[
-EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00[<unit>] [<action>]|r
-|cFFFFFF00<unit>|r (default: "|cFF00FF00all|r"):
-    |cFF00FF00all|r - show information for all players (|cFFFFFF00default|r)
-    |cFF00FF00target|r - show information for selected target
-    |cFF00FF00|cFFFFFF00<class>|r - show information for specified class
-|cFFFFFF00<action>|r (default: "|cFF00FF00show|r"):
+EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00<action> <unit>|r
+|cFFFFFF00<action>|r:
     |cFF00FF00show|r - show in default chat frame (|cFFFFFF00default|r)
     |cFF00FF00raid|r - announce in raid channel
     |cFF00FF00guild|r - announce in guild channel
     |cFF00FF00add|r - update CEPGP (announce in CEPGP "Reporting Channel")
-Example: |cFF00FF00/epbonus mage raid|r - announce bonus of all mages in raid channel]]
+|cFFFFFF00<unit>|r:
+    |cFF00FF00all|r - show information for all players (|cFFFFFF00default|r)
+    |cFF00FF00target|r - show information for selected target
+    |cFF00FF00|cFFFFFF00<class>|r - show information for specified class
+Example: |cFF00FF00/epbonus raid mage|r - announce bonus of all mages in raid channel]]
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
@@ -166,12 +166,9 @@ local function epbonus(args)
     action = nil
   }
 
-  if not command or command == "" then
-  elseif command == "help" then
+  if not command or command == "" or command == "help" then
     show_help()
     return
-  elseif not config.unit and command == "all" then
-    config.unit = command
   elseif not config.action and command == "show" then
     config.action = command
   elseif not config.action and (command == "raid" or command == "guild" or command == "add") then
@@ -180,14 +177,6 @@ local function epbonus(args)
     config.color_buffs = ""
     config.color_offline = ""
     config.color_reset = ""
-  elseif not config.unit and (command == "target") then
-    config.unit = command
-  elseif not config.unit and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
-    or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
-    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
-    then
-    config.unit = "<class>"
-    config.class = command
   else
     log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
@@ -198,24 +187,13 @@ local function epbonus(args)
   arg1 = nil
 
   if not command or command == "" then
-  elseif command == "help" then
+    log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
     return
-  elseif not config.unit and command == "all" then
+  elseif command == "all" then
     config.unit = command
-  elseif not config.action and command == "show" then
-    config.action = command
-  elseif not config.action and (command == "raid" or command == "guild" or command == "add") then
-    config.action = command
-    config.color_name = ""
-    config.color_buffs = ""
-    config.color_offline = ""
-    config.color_reset = ""
-  elseif not config.unit and (command == "target") then
+  elseif command == "target" then
     config.unit = command
-    config.target = true
-    config.show_buff_bonus = true
-    config.show_buff_abbrev = true
   elseif not config.unit and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
     or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
     or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
@@ -229,8 +207,8 @@ local function epbonus(args)
   end
 
 
-  config.unit = config.unit and config.unit:lower() or "all"
-  config.action = config.action and config.action:lower() or "show"
+  config.unit = config.unit:lower()
+  config.action = config.action:lower()
   config.class = config.class and config.class:upper()
 
   debug("Unit: '"..config.unit.."'")
