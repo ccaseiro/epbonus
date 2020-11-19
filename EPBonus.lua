@@ -1,3 +1,5 @@
+-- TODO: option to filter/show by time remaining
+
 SLASH_EPBONUS1 = "/epbonus"
 
 local bonus = {
@@ -43,7 +45,9 @@ local function ep_for_target(target, config)
 
   local isOnline = UnitIsConnected(target)
   if not isOnline then
-    return config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
+    -- local message = config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
+    local message = config.color_offline.."OFFLINE"..config.color_reset
+    return target_name, nil, message
   end
 
   local buffs = {};
@@ -72,13 +76,16 @@ local function ep_for_target(target, config)
     end
   end
 
-  local message = config.color_name..target_name..config.color_reset..": " .. sum
+  -- local message = config.color_name..target_name..config.color_reset..": " .. sum
+  local message = ""
   -- local message = string.format("%-20s: %5d", target_name, sum)
   if #buffs >= 1 and (config.show_buff_bonus or config.show_buff_abbrev) then
     buffs = table.concat(buffs, " + ");
-    message = message .. config.color_buffs .." = "..buffs
+    -- message = message .. config.color_buffs .." = "..buffs
+    message = message .. config.color_buffs..buffs
   end;
-  return message
+  return target_name, sum, message
+  -- return message
 end
 
 
@@ -89,7 +96,7 @@ end
 
 local function show_message(message, config)
   if message then
-    if config.announce == "guild" then
+    if config.announce == "guild" or config.announce == "add" then
       SendChatMessage(message, "guild")
     elseif config.announce == "raid" then
       local raid_or_party = IsInRaid() and "raid" or "party"
@@ -100,23 +107,35 @@ local function show_message(message, config)
   end
 end
 
-function show_help()
+local function action_for(name, ep, message, config)
+  if message then
+    if config.announce == "add" then
+      CEPGP_addEP(name, (ep or 0), "Buffs: "..message)
+    else
+      local full_message = config.color_name..name..config.color_reset..": "..(ep or "")..config.color_buffs..((not ep or ep == 0) and "" or " = ")..message..config.color_reset
+      show_message(full_message, config)
+    end
+  end
+end
+
+local function show_help()
   message = [[
-EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00[<unit>] [<chat>]|r
+EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00[<unit>] [<action>]|r
 |cFFFFFF00<unit>|r (default: "|cFF00FF00all|r"):
-  |cFF00FF00/epbonus all|r - show information for all players (|cFFFFFF00default|r)
-  |cFF00FF00/epbonus target|r - show information for selected target
-  |cFF00FF00/epbonus |cFFFFFF00<class>|r - show information for specified class
-|cFFFFFF00<chat>|r (default: "|cFF00FF00show|r"):
-  |cFF00FF00/epbonus show|r - show in default chat frame (|cFFFFFF00default|r)
-  |cFF00FF00/epbonus raid|r - announce in raid channel
-  |cFF00FF00/epbonus guild|r - announce in guild channel
+    |cFF00FF00all|r - show information for all players (|cFFFFFF00default|r)
+    |cFF00FF00target|r - show information for selected target
+    |cFF00FF00|cFFFFFF00<class>|r - show information for specified class
+|cFFFFFF00<action>|r (default: "|cFF00FF00show|r"):
+    |cFF00FF00show|r - show in default chat frame (|cFFFFFF00default|r)
+    |cFF00FF00raid|r - announce in raid channel
+    |cFF00FF00guild|r - announce in guild channel
+    |cFF00FF00add|r - update CEPGP (announce in CEPGP "Reporting Channel")
 Example: |cFF00FF00/epbonus mage raid|r - announce bonus of all mages in raid channel]]
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
 
-SlashCmdList["EPBONUS"] = function(args)
+local function epbonus(args)
   local command, arg1 = strsplit(" ", args:lower())
 
   local config = {
@@ -127,7 +146,7 @@ SlashCmdList["EPBONUS"] = function(args)
     color_buffs = "|cFF888888",
     color_offline = "|cFFFF0000",
     color_reset = "|r",
-    class = "ALL",
+    class = nil,
     target = false
   }
 
@@ -136,7 +155,7 @@ SlashCmdList["EPBONUS"] = function(args)
   elseif command == "help" then
     show_help()
     return
-  elseif command == "raid" or command == "guild" then
+  elseif command == "raid" or command == "guild" or command == "add" then
     config.announce = command
     config.color_name = ""
     config.color_buffs = ""
@@ -161,7 +180,7 @@ SlashCmdList["EPBONUS"] = function(args)
   arg1 = nil
 
   if not command or command == "" or command == "all" or command == "show" then
-  elseif not config.announce and command == "raid" or command == "guild" then
+  elseif not config.announce and command == "raid" or command == "guild" or command == "add" then
     config.announce = command
     config.color_name = ""
     config.color_buffs = ""
@@ -186,10 +205,12 @@ SlashCmdList["EPBONUS"] = function(args)
     return
   end
 
+  config.class = config.class or "ALL"
+
   if config.target then
-    local message = ep_for_target("target", config)
+    local name, ep, message = ep_for_target("target", config)
     if message then
-      show_message(message, config)
+      action_for(name, ep, message, config)
     else
       log("|cFFFF0000Need to select target first|r")
     end
@@ -202,18 +223,20 @@ SlashCmdList["EPBONUS"] = function(args)
   show_message(config.color_buffs.."== Class: "..config.class.." ==", config)
   if IsInRaid() then
     for p=1,number_of_members do
-      local message = ep_for_target("raid"..p, config)
-      show_message(message, config)
+      local name, ep, message = ep_for_target("raid"..p, config)
+      action_for(name, ep, message, config)
     end
   else
     -- "party" does not includes "player" (it's from 1..4), so we need to handle it manualy
-    local message = ep_for_target("player", config)
-    show_message(message, config)
+    local name, ep, message = ep_for_target("player", config)
+    action_for(name, ep, message, config)
     for p=1,number_of_members-1 do
-      message = ep_for_target("party"..p, config)
-      show_message(message, config)
+      name, ep, message = ep_for_target("party"..p, config)
+      action_for(name, ep, message, config)
     end
   end
   show_message(config.color_buffs.."==================", config)
 end
 
+
+SlashCmdList["EPBONUS"] = epbonus
