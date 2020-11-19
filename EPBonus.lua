@@ -29,6 +29,15 @@ local abbrev = {
   [16609] = "WAR", -- Warchief's Blessing
 }
 
+local function debug(message)
+  if DEBUG then
+    DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000[DEBUG]|r "..message)
+  end
+end
+
+local function log(message)
+  DEFAULT_CHAT_FRAME:AddMessage(message)
+end
 
 local function ep_for_target(target, config)
   local target_name = UnitName(target)
@@ -86,11 +95,6 @@ local function ep_for_target(target, config)
   end;
   return target_name, sum, message
   -- return message
-end
-
-
-local function log(message)
-  DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
 
