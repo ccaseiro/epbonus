@@ -1,5 +1,5 @@
 -- TODO: option to filter/show by time remaining
-local DEBUG = true
+local DEBUG = false
 
 SLASH_EPBONUS1 = "/epbonus"
 
@@ -57,8 +57,9 @@ local function ep_for_target(unit, config)
   local isOnline = UnitIsConnected(unit)
   if not isOnline then
     -- local message = config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
+    local reason = "OFFLINE"
     local message = config.color_offline.."OFFLINE"..config.color_reset
-    return target_name, nil, message
+    return target_name, nil, reason, message
   end
 
   local buffs = {};
@@ -95,7 +96,7 @@ local function ep_for_target(unit, config)
     -- message = message .. config.color_buffs .." = "..buffs
     message = message .. config.color_buffs..buffs
   end;
-  return target_name, sum, message
+  return target_name, sum, "BUFF", message
   -- return message
 end
 
@@ -113,10 +114,19 @@ local function show_message(message, config)
   end
 end
 
-local function action_for(name, ep, message, config)
+local function action_for(name, ep, reason, message, config)
+  -- debug("Reason:"..reason.." message:"..message)
   if message then
     if config.action == "add" then
-      CEPGP_addEP(name, (ep or 0), "Buffs: "..message)
+      local m = ""
+      if reason == "OFFLINE" then
+        m = "OFFLINE"
+      elseif ep > 0 then
+        m = "Buffs: "..message
+      else
+        m = "Buffs: None"
+      end
+      CEPGP_addEP(name, (ep or 0), m) 
     else
       local full_message = config.color_name..name..config.color_reset..": "..(ep or "")..config.color_buffs..((not ep or ep == 0) and "" or " = ")..message..config.color_reset
       show_message(full_message, config)
@@ -232,9 +242,9 @@ local function epbonus(args)
   debug("Class: '"..(config.class or "").."'")
 
   if config.unit == "target" then
-    local name, ep, message = ep_for_target("target", config)
+    local name, ep, reason, message = ep_for_target("target", config)
     if message then
-      action_for(name, ep, message, config)
+      action_for(name, ep, reason, message, config)
     else
       log("|cFFFF0000Need to select target first|r")
     end
@@ -247,16 +257,16 @@ local function epbonus(args)
   show_message(config.color_buffs.."== Class: "..(config.class or config.unit).." ==", config)
   if IsInRaid() then
     for p=1,number_of_members do
-      local name, ep, message = ep_for_target("raid"..p, config)
-      action_for(name, ep, message, config)
+      local name, ep, reason, message = ep_for_target("raid"..p, config)
+      action_for(name, ep, reason,message, config)
     end
   else
     -- "party" does not includes "player" (it's from 1..4), so we need to handle it manualy
-    local name, ep, message = ep_for_target("player", config)
-    action_for(name, ep, message, config)
+    local name, ep, reason, message = ep_for_target("player", config)
+    action_for(name, ep, reason, message, config)
     for p=1,number_of_members-1 do
-      name, ep, message = ep_for_target("party"..p, config)
-      action_for(name, ep, message, config)
+      name, ep, reason, message = ep_for_target("party"..p, config)
+      action_for(name, ep, reason, message, config)
     end
   end
   show_message(config.color_buffs.."==================", config)
