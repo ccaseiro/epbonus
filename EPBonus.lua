@@ -1,4 +1,5 @@
 -- TODO: option to filter/show by time remaining
+local DEBUG = true
 
 SLASH_EPBONUS1 = "/epbonus"
 
@@ -39,20 +40,21 @@ local function log(message)
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
-local function ep_for_target(target, config)
-  local target_name = UnitName(target)
+
+local function ep_for_target(unit, config)
+  local target_name = UnitName(unit)
 
   if not target_name then
     return nil
   end
 
-  local _, englishClass, _ = UnitClass(target);
+  local _, englishClass, _ = UnitClass(unit);
 
-  if config.class ~= "ALL" and config.class ~= englishClass then
+  if (config.unit == "<class>" and config.class ~= englishClass) then
     return nil
   end
 
-  local isOnline = UnitIsConnected(target)
+  local isOnline = UnitIsConnected(unit)
   if not isOnline then
     -- local message = config.color_name..target_name..config.color_reset..": "..config.color_offline.."OFFLINE"..config.color_reset
     local message = config.color_offline.."OFFLINE"..config.color_reset
@@ -62,7 +64,7 @@ local function ep_for_target(target, config)
   local buffs = {};
   local i = 1
 
-  local buff,_,_,_,_,_,_,_,_,buffid = UnitBuff(target, i);
+  local buff,_,_,_,_,_,_,_,_,buffid = UnitBuff(unit, i);
   local sum = 0
   local tmp = {}
   while buff do
@@ -71,7 +73,7 @@ local function ep_for_target(target, config)
       tmp[buff_abbrev] = bonus[buff_abbrev]
     end
     i = i + 1;
-    buff,_,_,_,_,_,_,_,_,buffid = UnitBuff(target, i);
+    buff,_,_,_,_,_,_,_,_,buffid = UnitBuff(unit, i);
   end;
 
   for k,v in pairs(tmp) do
@@ -100,9 +102,9 @@ end
 
 local function show_message(message, config)
   if message then
-    if config.announce == "guild" or config.announce == "add" then
+    if config.action == "guild" or config.action == "add" then
       SendChatMessage(message, "guild")
-    elseif config.announce == "raid" then
+    elseif config.action == "raid" then
       local raid_or_party = IsInRaid() and "raid" or "party"
       SendChatMessage(message, raid_or_party)
     else
@@ -113,7 +115,7 @@ end
 
 local function action_for(name, ep, message, config)
   if message then
-    if config.announce == "add" then
+    if config.action == "add" then
       CEPGP_addEP(name, (ep or 0), "Buffs: "..message)
     else
       local full_message = config.color_name..name..config.color_reset..": "..(ep or "")..config.color_buffs..((not ep or ep == 0) and "" or " = ")..message..config.color_reset
@@ -143,7 +145,6 @@ local function epbonus(args)
   local command, arg1 = strsplit(" ", args:lower())
 
   local config = {
-    announce = nil,
     show_buff_bonus = false,
     show_buff_abbrev = true,
     color_name = "|cFFFFFF00",
@@ -151,29 +152,36 @@ local function epbonus(args)
     color_offline = "|cFFFF0000",
     color_reset = "|r",
     class = nil,
-    target = false
+    target = false,
+    unit = nil,
+    action = nil
   }
 
-  if not command or command == "" or command == "all" or command == "show" then
-    config.class = "ALL"
+  if not command or command == "" then
   elseif command == "help" then
     show_help()
     return
-  elseif command == "raid" or command == "guild" or command == "add" then
-    config.announce = command
+  elseif not config.unit and command == "all" then
+    config.unit = command
+  elseif not config.action and command == "show" then
+    config.action = command
+  elseif not config.action and (command == "raid" or command == "guild" or command == "add") then
+    config.action = command
     config.color_name = ""
     config.color_buffs = ""
     config.color_offline = ""
     config.color_reset = ""
-  elseif command == "target" then
+  elseif not config.unit and (command == "target") then
+    config.unit = command
+    config.target = true
     config.show_buff_bonus = true
     config.show_buff_abbrev = true
-    config.target = true
-  elseif command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
+  elseif not config.unit and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
     or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
-    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter"
+    or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
     then
-    config.class = command:upper()
+    config.unit = "<class>"
+    config.class = command
   else
     log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
@@ -183,35 +191,47 @@ local function epbonus(args)
   command = arg1
   arg1 = nil
 
-  if not command or command == "" or command == "all" or command == "show" then
-  elseif not config.announce and command == "raid" or command == "guild" or command == "add" then
-    config.announce = command
+  if not command or command == "" then
+  elseif command == "help" then
+    show_help()
+    return
+  elseif not config.unit and command == "all" then
+    config.unit = command
+  elseif not config.action and command == "show" then
+    config.action = command
+  elseif not config.action and (command == "raid" or command == "guild" or command == "add") then
+    config.action = command
     config.color_name = ""
     config.color_buffs = ""
     config.color_offline = ""
     config.color_reset = ""
-    command = arg1
-    arg1 = nil
-  elseif not config.target and command == "target" then
+  elseif not config.unit and (command == "target") then
+    config.unit = command
+    config.target = true
     config.show_buff_bonus = true
     config.show_buff_abbrev = true
-    command = arg1
-    arg1 = nil
-    config.target = true
-  elseif not config.class and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
+  elseif not config.unit and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
     or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
     or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
     then
-    config.class = command:upper()
+    config.unit = "<class>"
+    config.class = command
   else
     log("|cFFFF0000invalid command: |cFF00FF00/epbonus "..args.."|r")
     show_help()
     return
   end
 
-  config.class = config.class or "ALL"
 
-  if config.target then
+  config.unit = config.unit and config.unit:lower() or "all"
+  config.action = config.action and config.action:lower() or "show"
+  config.class = config.class and config.class:upper()
+
+  debug("Unit: '"..config.unit.."'")
+  debug("Action: '"..config.action.."'")
+  debug("Class: '"..(config.class or "").."'")
+
+  if config.unit == "target" then
     local name, ep, message = ep_for_target("target", config)
     if message then
       action_for(name, ep, message, config)
@@ -224,7 +244,7 @@ local function epbonus(args)
   local raid_or_party = IsInRaid() and "raid" or "party"
 
   local number_of_members = GetNumGroupMembers()
-  show_message(config.color_buffs.."== Class: "..config.class.." ==", config)
+  show_message(config.color_buffs.."== Class: "..(config.class or config.unit).." ==", config)
   if IsInRaid() then
     for p=1,number_of_members do
       local name, ep, message = ep_for_target("raid"..p, config)
