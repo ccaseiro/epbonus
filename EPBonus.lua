@@ -162,7 +162,6 @@ local function epbonus(args)
     color_offline = "|cFFFF0000",
     color_reset = "|r",
     class = nil,
-    target = false,
     unit = nil,
     action = nil
   }
@@ -183,9 +182,6 @@ local function epbonus(args)
     config.color_reset = ""
   elseif not config.unit and (command == "target") then
     config.unit = command
-    config.target = true
-    config.show_buff_bonus = true
-    config.show_buff_abbrev = true
   elseif not config.unit and (command == "warrior" or command == "paladin" or command == "hunter" or command == "rogue"
     or command == "priest" or command == "deathknight" or command == "shaman" or command == "mage"
     or command == "warlock" or command == "monk" or command == "druid" or command == "demonhunter")
