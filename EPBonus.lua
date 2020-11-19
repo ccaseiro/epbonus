@@ -138,12 +138,12 @@ local function show_help()
   message = [[
 EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00<action> <unit>|r
 |cFFFFFF00<action>|r:
-    |cFF00FF00show|r - show in default chat frame (|cFFFFFF00default|r)
+    |cFF00FF00show|r - show in default chat frame
     |cFF00FF00raid|r - announce in raid channel
     |cFF00FF00guild|r - announce in guild channel
     |cFF00FF00add|r - update CEPGP (announce in CEPGP "Reporting Channel")
 |cFFFFFF00<unit>|r:
-    |cFF00FF00all|r - show information for all players (|cFFFFFF00default|r)
+    |cFF00FF00all|r - show information for all players
     |cFF00FF00target|r - show information for selected target
     |cFF00FF00|cFFFFFF00<class>|r - show information for specified class
 Example: |cFF00FF00/epbonus raid mage|r - announce bonus of all mages in raid channel]]
