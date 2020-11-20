@@ -40,6 +40,11 @@ local function log(message)
   DEFAULT_CHAT_FRAME:AddMessage(message)
 end
 
+local function sleep(tick)
+  local th = coroutine.running()
+  C_Timer.After(tick, function() coroutine.resume(th) end)
+  coroutine.yield()
+end
 
 local function ep_for_target(unit, config)
   local target_name = UnitName(unit)
@@ -127,6 +132,7 @@ local function action_for(name, ep, reason, message, config)
         m = "Buffs: None"
       end
       CEPGP_addEP(name, (ep or 0), m) 
+      sleep(config.delay)
     else
       local full_message = config.color_name..name..config.color_reset..": "..(ep or "")..config.color_buffs..((not ep or ep == 0) and "" or " = ")..message..config.color_reset
       show_message(full_message, config)
@@ -155,6 +161,7 @@ local function epbonus(args)
   local command, arg1 = strsplit(" ", args:lower())
 
   local config = {
+    delay = 0.2,
     show_buff_bonus = false,
     show_buff_abbrev = true,
     color_name = "|cFFFFFF00",
@@ -246,5 +253,8 @@ local function epbonus(args)
   show_message(config.color_buffs.."==================", config)
 end
 
+function epbonus_wrapper(args)
+  coroutine.wrap(epbonus)(args)
+end
 
-SlashCmdList["EPBONUS"] = epbonus
+SlashCmdList["EPBONUS"] = epbonus_wrapper
