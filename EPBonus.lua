@@ -1,5 +1,6 @@
 -- TODO: option to filter/show by time remaining
 local DEBUG = false
+local EPBONUS_version = "1.1.3"
 
 SLASH_EPBONUS1 = "/epbonus"
 
@@ -140,9 +141,14 @@ local function action_for(name, ep, reason, message, config)
   end
 end
 
+local function red(str)
+  return "|cFFFF0000"..str.."|r"
+end
+
 local function show_help()
-  message = [[
-EPBonus usage: |cFF00FF00 /epbonus |cFFFFFF00<action> <unit>|r
+  local message = red("EPBonus v"..EPBONUS_version.."\n")
+  message =  message .. [[
+Usage: |cFF00FF00 /epbonus |cFFFFFF00<action> <unit>|r
 |cFFFFFF00<action>|r:
     |cFF00FF00show|r - show in default chat frame
     |cFF00FF00raid|r - announce in raid channel
