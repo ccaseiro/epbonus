@@ -1,6 +1,6 @@
 -- TODO: option to filter/show by time remaining
 local DEBUG = false
-local EPBONUS_version = "1.1.3"
+local EPBONUS_version = "1.1.4"
 
 SLASH_EPBONUS1 = "/epbonus"
 
