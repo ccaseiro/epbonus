@@ -1,4 +1,4 @@
-## Interface: 11305
+## Interface: 11306
 ## Title: EPBonus
 ## Notes: Manage EP Bonus according to Player's Buffs / OnTime
 ## Author: Claudio Caseiro
